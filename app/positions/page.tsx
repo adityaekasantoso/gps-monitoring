@@ -20,14 +20,12 @@ import {
 import MapComponents from "../components/MapComponents";
 
 export default function Page() {
-  // State koordinat pusat peta yang dipilih dari sidebar
   const [selectedPosition, setSelectedPosition] = useState<{
     lat: number;
     lon: number;
   } | null>(null);
 
-  // Fungsi ini akan dikirim ke AppSidebar, dipanggil saat klik item sidebar
-  const handleSetMapView = (lat: number, lon: number) => {
+  const handleSetMapView = (lat: number, lon: number, id: string) => {
     setSelectedPosition({ lat, lon });
   };
 
