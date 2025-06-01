@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -25,6 +25,18 @@ const carIcon = new L.Icon({
   popupAnchor: [0, -32],
 });
 
+function SetViewOnClick({ lat, lon }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (lat && lon) {
+      map.setView([lat, lon], 16);
+    }
+  }, [lat, lon, map]);
+
+  return null;
+}
+
 function isRecentlyUpdated(timeStr) {
   const now = dayjs();
   const time = dayjs(timeStr);
@@ -32,7 +44,7 @@ function isRecentlyUpdated(timeStr) {
   return diffInSeconds <= 10;
 }
 
-function ControlButtons({ setCenter }) {
+function ControlButtons() {
   const map = useMap();
 
   return (
@@ -58,75 +70,74 @@ function ControlButtons({ setCenter }) {
   );
 }
 
-export default function MapComponent({ cars }) {
-  const mapRef = useRef();
-
+export default function RealMapComponent({ cars, selectedLat, selectedLon }) {
   return (
-    <div className="relative" style={{ height: "100vh", width: "100%" }}>
-      <MapContainer
-        center={[3.3, 99.1]}
-        zoom={9}
-        zoomControl={false}
-        style={{ height: "100%", width: "100%" }}
-        whenCreated={(mapInstance) => {
-          mapRef.current = mapInstance;
-        }}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+    <MapContainer
+      center={[3.3, 99.1]}
+      zoom={9}
+      zoomControl={false} // disable default zoom control karena kita buat custom
+      style={{ height: "100%", width: "100%" }}
+    >
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        {cars.map((car) => {
-          const lat = parseFloat(car.lat);
-          const lon = parseFloat(car.lon);
-          if (isNaN(lat) || isNaN(lon)) return null;
+      {cars.map((car) => {
+        const lat = parseFloat(car.lat);
+        const lon = parseFloat(car.lon);
+        if (isNaN(lat) || isNaN(lon)) return null;
 
-          return (
-            <Marker key={car.id} position={[lat, lon]} icon={carIcon}>
-              <Popup
-                className="!p-0 !border-none"
-                closeButton={false}
-                minWidth={140}
-              >
-                <div className="text-xs font-sans">
-                  <div className="text-center font-bold text-sm mb-2 flex items-center justify-center gap-2">
-                    <span>{car.rname}</span>
-                    <span className="text-xs font-normal text-gray-500">
-                      #{car.id}
-                    </span>
-                  </div>
-                  <div className="text-center mb-3">
-                    {isRecentlyUpdated(car.time) ? (
-                      <Badge
-                        variant="outline"
-                        className="text-gray-500 gap-1 px-2 py-1 text-xs inline-flex items-center justify-center"
-                      >
-                        <BadgeCheckIcon className="w-3 h-3" />
-                        Updated
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="text-gray-500 gap-1 px-2 py-1 text-xs inline-flex items-center justify-center"
-                      >
-                        <AlertCircleIcon className="w-3 h-3" />
-                        {dayjs(car.time).fromNow()}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="flex justify-between mb-1">
-                    <span>Speed</span>
-                    <span className="font-bold text-gray-600">
-                      {car.speed} Km/h
-                    </span>
-                  </div>
+        return (
+          <Marker key={car.id} position={[lat, lon]} icon={carIcon}>
+            <Popup
+              className="!p-0 !border-none"
+              closeButton={false}
+              minWidth={140}
+            >
+              <div className="text-xs font-sans">
+                <div className="text-center font-bold text-sm mb-2 flex items-center justify-center gap-2">
+                  <span>{car.rname}</span>
+                  <span className="text-xs font-normal text-gray-500">
+                    #{car.id}
+                  </span>
                 </div>
-              </Popup>
-            </Marker>
-          );
-        })}
+                <div className="text-center mb-3">
+                  {isRecentlyUpdated(car.time) ? (
+                    <Badge
+                      variant="outline"
+                      className="text-gray-500 gap-1 px-2 py-1 text-xs inline-flex items-center justify-center"
+                    >
+                      <BadgeCheckIcon className="w-3 h-3" />
+                      Updated
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="text-gray-500 gap-1 px-2 py-1 text-xs inline-flex items-center justify-center"
+                    >
+                      <AlertCircleIcon className="w-3 h-3" />
+                      {dayjs(car.time).fromNow()}
+                    </Badge>
+                  )}
+                </div>
 
-        <ControlButtons />
-      </MapContainer>
-    </div>
+                <div className="flex justify-between mb-1">
+                  <span>Speed</span>
+                  <span className="font-bold text-gray-600">
+                    {car.speed} Km/h
+                  </span>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+
+      {/* Jika ada koordinat terpilih, pindahkan view peta */}
+      {selectedLat && selectedLon && (
+        <SetViewOnClick lat={selectedLat} lon={selectedLon} />
+      )}
+
+      {/* Panggil ControlButtons supaya tombol zoom tampil */}
+      <ControlButtons />
+    </MapContainer>
   );
 }

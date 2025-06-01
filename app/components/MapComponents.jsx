@@ -1,14 +1,11 @@
-"use client";
-
+import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
 
 const RealMapComponent = dynamic(() => import("./RealMapComponent"), {
-
   ssr: false,
 });
 
-export default function MapComponents() {
+export default function MapComponents({ selectedLat, selectedLon }) {
   const [cars, setCars] = useState([]);
 
   useEffect(() => {
@@ -29,7 +26,11 @@ export default function MapComponents() {
 
   return (
     <div style={{ height: "100vh", width: "100%" }}>
-      <RealMapComponent cars={cars} />
+      <RealMapComponent
+        cars={cars}
+        selectedLat={selectedLat}
+        selectedLon={selectedLon}
+      />
     </div>
   );
 }

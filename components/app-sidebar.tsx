@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Command, LayoutDashboard, MapPin } from "lucide-react";
+import { FaCar } from "react-icons/fa";
+import { parseISO, formatDistanceToNowStrict } from "date-fns";
 
 import { NavUser } from "@/components/nav-user";
 import {
@@ -20,18 +20,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { FaCar, FaLocationArrow } from "react-icons/fa";
-import { MdOutlineUpdate } from "react-icons/md";
-import { parseISO, format } from "date-fns";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { TiHome } from "react-icons/ti";
+import { FaMapMarkerAlt } from "react-icons/fa";
 
 const navMain = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Positions", url: "/positions", icon: MapPin },
+  { title: "Dashboard", url: "/dashboard", icon: TiHome },
+  { title: "Positions", url: "/positions", icon: FaMapMarkerAlt },
 ];
 
 const user = {
@@ -41,19 +35,12 @@ const user = {
 };
 
 function formatTime(date: Date) {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-
-  if (diffSec < 60) return `${diffSec} second ago`;
-
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} minute ago`;
-
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return format(date, "HH:mm");
-
-  return format(date, "yyyy-MM-dd HH:mm:ss");
+  if (!date) return "";
+  try {
+    return formatDistanceToNowStrict(date, { addSuffix: true });
+  } catch {
+    return "";
+  }
 }
 
 function isDataEqual(oldData: any[], newData: any[]) {
@@ -73,15 +60,19 @@ function isDataEqual(oldData: any[], newData: any[]) {
   return true;
 }
 
+interface PanelComponentProps {
+  searchTerm: string;
+  showDetails: boolean;
+  setShowDetails: (val: boolean) => void;
+  onItemClick: (lat: number, lon: number, id: string) => void;
+}
+
 function PanelComponent({
   searchTerm,
   showDetails,
   setShowDetails,
-}: {
-  searchTerm: string;
-  showDetails: boolean;
-  setShowDetails: (val: boolean) => void;
-}) {
+  onItemClick,
+}: PanelComponentProps) {
   const [data, setData] = React.useState<any[]>([]);
   const [error, setError] = React.useState("");
   const [loading, setLoading] = React.useState(true);
@@ -145,19 +136,28 @@ function PanelComponent({
             </p>
           ) : filteredData.length > 0 ? (
             filteredData.map((item) => {
-              const timeUpdated = parseISO(item.rxtime);
-              const formattedTime = formatTime(timeUpdated);
+              const lat = parseFloat(item.lat);
+              const lon = parseFloat(item.lon);
+              const time = item.rxtime ? parseISO(item.rxtime) : null;
 
               return (
                 <a
                   href="#"
                   key={item.id}
-                  className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex flex-col gap-2 border-b p-4 text-sm leading-tight whitespace-nowrap last:border-b-0"
+                  className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex flex-col gap-2 border-b p-4 text-sm leading-tight whitespace-nowrap last:border-b-0 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                      onItemClick(lat, lon, item.id);
+                    }
+                  }}
                 >
                   <div className="flex items-center gap-2">
                     <FaCar className="w-4 h-4 text-foreground" />
                     <span className="font-medium">{item.rname}</span>
-                    <span className="ml-auto text-xs">{formattedTime}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {time ? formatTime(time) : "-"}
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between gap-2">
@@ -182,7 +182,11 @@ function PanelComponent({
   );
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  onSetMapView: (lat: number, lon: number, id: string) => void;
+}
+
+export function AppSidebar({ onSetMapView, ...props }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { setOpen } = useSidebar();
@@ -200,6 +204,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       className="overflow-hidden *:data-[sidebar=sidebar]:flex-row"
       {...props}
     >
+      {/* Sidebar utama icon-only */}
       <Sidebar
         collapsible="none"
         className="w-[calc(var(--sidebar-width-icon)+1px)] border-r flex flex-col min-h-screen"
@@ -214,8 +219,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </div>
                   {isPositionsPage && (
                     <div className="grid flex-1 text-left text-sm leading-tight ml-2">
-                      <span className="truncate font-medium">GPS Monitoring</span>
-                      <span className="truncate text-xs">Multiintegra Techology Group</span>
+                      <span className="truncate font-medium">
+                        GPS Monitoring
+                      </span>
+                      <span className="truncate text-xs">
+                        Multiintegra Technology Group
+                      </span>
                     </div>
                   )}
                 </a>
@@ -235,7 +244,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuButton
                       tooltip={{
                         children: item.title,
-                        hidden: isPositionsPage ? false : true,
+                        hidden: !isPositionsPage,
                       }}
                       onClick={() => {
                         router.push(item.url);
@@ -263,6 +272,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarFooter>
       </Sidebar>
 
+      {/* Sidebar detail untuk halaman positions */}
       {isPositionsPage && (
         <Sidebar collapsible="none" className="hidden flex-1 md:flex flex-col">
           <SidebarHeader className="gap-3.5 border-b p-4 flex flex-col">
@@ -282,6 +292,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             searchTerm={searchTerm}
             showDetails={showDetails}
             setShowDetails={setShowDetails}
+            onItemClick={onSetMapView}
           />
         </Sidebar>
       )}
