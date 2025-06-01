@@ -5,6 +5,9 @@ import {
 } from "@/components/ui/sidebar"
 
 export default function Page() {
+  const handleSetMapView = (lat: number, lon: number) => {
+  }
+
   return (
     <SidebarProvider
       style={
@@ -13,9 +16,8 @@ export default function Page() {
         } as React.CSSProperties
       }
     >
-      <AppSidebar />
+      <AppSidebar onSetMapView={handleSetMapView} />
       <SidebarInset>
-        {/* Area konten kosong */}
         <div className="flex flex-1 items-center justify-center p-4 text-gray-500">
           Halaman Kosong
         </div>
